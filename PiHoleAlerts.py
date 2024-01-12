@@ -113,7 +113,7 @@ def main():
         # Check if device is active/inactive again
         changeFlag = (withinDeltaMinsFlag != configStatus) and not configNotified
 
-        # Update CONFIG Device Info
+        # Update CONFIG Device Status
         configDevice["status"] = withinDeltaMinsFlag
 
         # Send user notifications? && Update CONFIG Device Info
