@@ -1,0 +1,12 @@
+[Unit]
+Description=PiHoleAlerts Service
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/PiHoleAlerts/
+ExecStart=/usr/bin/python3 /home/pi/PiHoleAlerts/PiHoleAlerts.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
