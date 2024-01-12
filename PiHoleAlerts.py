@@ -33,13 +33,19 @@ def getNetworkInfo(piHoleFTPdb):
     dbData = {}
     for deviceName in CONFIG["DEVICES"]:
         # Execute a query to get IP address and last seen timestamp from the database
-        cursor.execute(f"SELECT ip, lastSeen FROM network_addresses WHERE name='{deviceName.lower()}'")
+        cursor.execute(f"""
+            SELECT queries.client, queries.timestamp
+            FROM network_addresses, queries
+            WHERE network_addresses.name='{deviceName.lower()}' AND network_addresses.ip = queries.client
+            ORDER BY queries.timestamp DESC
+            LIMIT 1
+        """)
 
         # Fetch the results of the query
-        deviceIp, deviceLastSeen = cursor.fetchone()
+        deviceIp, deviceLastQuery = cursor.fetchone()
 
         # Store the device information in the dictionary
-        dbData[deviceName] = {"ip": deviceIp, "lastSeen": deviceLastSeen}
+        dbData[deviceName] = {"ip": deviceIp, "lastQuery": deviceLastQuery}
 
     # Close the connection
     conn.close()
@@ -98,10 +104,11 @@ def main():
 
         # Get CONFIG DEVICE Info && DB Device Info
         configNotified, configStatus, = configDevice["notified"], configDevice["status"]
-        dbLastSeen = deviceInfo["lastSeen"]
+        dbLastQuery = deviceInfo["lastQuery"]
+        dbLastQueryDatetime = datetime.datetime.utcfromtimestamp(dbLastQuery)
 
         # Get WithInDeltaMins result
-        withinDeltaMinsFlag = withinDeltaMins(currTimestamp, dbLastSeen, deltaMins)
+        withinDeltaMinsFlag = withinDeltaMins(currTimestamp, dbLastQuery, deltaMins)
 
         # Check if device is active/inactive again
         changeFlag = (withinDeltaMinsFlag != configStatus) and not configNotified
@@ -110,14 +117,15 @@ def main():
         configDevice["status"] = withinDeltaMinsFlag
 
         # Send user notifications? && Update CONFIG Device Info
-        statusMsg = 'ACTIVE' if withinDeltaMinsFlag else 'INACTIVE'
+        statusMsg = "ACTIVE" if withinDeltaMinsFlag else "INACTIVE"
         if changeFlag:
-            configDevice["notified"] = not configDevice["notified"]
-            updateMsg = f"Device {deviceName} changed to {statusMsg}"
+            configDevice["notified"] = True
+            updateMsg = f"Device {deviceName} changed to {statusMsg} - lastQuery {dbLastQueryDatetime}"
             logger.info(updateMsg)
-            sendEmail(updateMsg, f"{configDevice}")
+            sendEmail(updateMsg, "")
         else:
             logging.info(f"Device {deviceName} not changed - {statusMsg}")
+            configDevice["notified"] = False
 
         # Update CONFIG FILE
         CONFIG["DEVICES"][deviceName] = configDevice
