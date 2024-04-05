@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # !/usr/bin/python3
 
-import os
+import datetime
 import json
 import logging
+import os
 import sqlite3
-import datetime
 import traceback
-from Misc import get911, sendEmail
+
+from Misc import sendEmail
 
 
 def getNetworkInfo(piHoleFTPdb):
